@@ -1,15 +1,40 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
-import NutrientBar from '@/components/NutrientBar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Wand2, Check, ArrowLeft, Pencil } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Wand2, Check, ArrowLeft } from 'lucide-react';
+
+interface NutrientSliderProps {
+  label: string;
+  value: number;
+  max: number;
+  unit: string;
+  colorClass: string;
+  onChange: (v: number) => void;
+}
+
+const NutrientSlider = ({ label, value, max, unit, colorClass, onChange }: NutrientSliderProps) => (
+  <div className="space-y-2">
+    <div className="flex justify-between items-baseline">
+      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+      <span className="text-lg font-bold font-display">
+        {value}<span className="text-xs text-muted-foreground ml-0.5">{unit}</span>
+      </span>
+    </div>
+    <Slider
+      value={[value]}
+      max={max}
+      step={1}
+      onValueChange={([v]) => onChange(v)}
+      className={colorClass}
+    />
+  </div>
+);
 
 const FoodDetailPage = () => {
   const { scannedFood, setScannedFood, addFoodEntry, profile } = useAppContext();
   const navigate = useNavigate();
-  const [editing, setEditing] = useState(false);
 
   const [name, setName] = useState('');
   const [calories, setCalories] = useState(0);
@@ -34,17 +59,18 @@ const FoodDetailPage = () => {
   }, [scannedFood, navigate]);
 
   const handleAutoAdjust = () => {
-    // Adjust based on user profile goal
+    if (!scannedFood) return;
     let factor = 1;
     if (profile.goal === 'lose_weight') factor = 0.75;
     else if (profile.goal === 'gain_muscle') factor = 1.3;
     else if (profile.goal === 'improve_health') factor = 0.9;
 
-    setCalories(Math.round(calories * factor));
-    setProtein(Math.round(protein * (profile.goal === 'gain_muscle' ? 1.5 : factor)));
-    setCarbs(Math.round(carbs * (profile.goal === 'lose_weight' ? 0.6 : factor)));
-    setFat(Math.round(fat * factor));
-    setServingSize(Math.round(servingSize * factor));
+    setCalories(Math.round(scannedFood.calories * factor));
+    setProtein(Math.round(scannedFood.protein * (profile.goal === 'gain_muscle' ? 1.5 : factor)));
+    setCarbs(Math.round(scannedFood.carbs * (profile.goal === 'lose_weight' ? 0.6 : factor)));
+    setFat(Math.round(scannedFood.fat * factor));
+    setFiber(Math.round(scannedFood.fiber * factor));
+    setServingSize(Math.round(scannedFood.servingSize * factor));
   };
 
   const handleConfirm = () => {
@@ -76,69 +102,80 @@ const FoodDetailPage = () => {
         <h1 className="text-xl font-bold font-display">Detalle del alimento</h1>
       </div>
 
-      {/* Food name */}
+      {/* Food name & calories hero */}
       <div className="glass-card rounded-2xl p-5 mb-4 animate-scale-in">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-xl font-bold font-display">{name}</h2>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">{servingSize}g</span>
+          <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full font-medium">{servingSize}g</span>
         </div>
-        <p className="text-3xl font-bold font-display text-primary">
+        <p className="text-4xl font-extrabold font-display text-primary">
           {calories} <span className="text-base text-muted-foreground font-normal">kcal</span>
         </p>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex gap-2 mb-4 animate-slide-up">
-        <Button
-          onClick={handleAutoAdjust}
-          variant="outline"
-          className="flex-1 rounded-xl gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
-        >
-          <Wand2 size={16} />
-          Auto-ajustar
-        </Button>
-        <Button
-          onClick={() => setEditing(!editing)}
-          variant="outline"
-          className="flex-1 rounded-xl gap-2"
-        >
-          <Pencil size={16} />
-          {editing ? 'Vista previa' : 'Editar manual'}
-        </Button>
-      </div>
+      {/* Auto-adjust button */}
+      <Button
+        onClick={handleAutoAdjust}
+        variant="outline"
+        className="w-full rounded-xl gap-2 mb-4 border-primary/30 text-primary hover:bg-primary/5 hover:text-primary h-11 animate-slide-up"
+      >
+        <Wand2 size={16} />
+        Auto-ajustar según tu objetivo
+      </Button>
 
-      {/* Nutrients */}
-      {editing ? (
-        <div className="glass-card rounded-2xl p-5 mb-4 space-y-4 animate-scale-in">
-          <h3 className="text-sm font-semibold font-display">Editar valores</h3>
-          {[
-            { label: 'Calorías (kcal)', value: calories, setter: setCalories },
-            { label: 'Proteína (g)', value: protein, setter: setProtein },
-            { label: 'Carbohidratos (g)', value: carbs, setter: setCarbs },
-            { label: 'Grasa (g)', value: fat, setter: setFat },
-            { label: 'Fibra (g)', value: fiber, setter: setFiber },
-            { label: 'Porción (g)', value: servingSize, setter: setServingSize },
-          ].map(({ label, value, setter }) => (
-            <div key={label}>
-              <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
-              <Input
-                type="number"
-                value={value}
-                onChange={e => setter(Number(e.target.value))}
-                className="rounded-xl"
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="glass-card rounded-2xl p-5 mb-4 space-y-3 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <h3 className="text-sm font-semibold font-display">Información nutricional</h3>
-          <NutrientBar label="Proteína" value={protein} max={50} colorClass="bg-nutrient-protein" />
-          <NutrientBar label="Carbohidratos" value={carbs} max={80} colorClass="bg-nutrient-carbs" />
-          <NutrientBar label="Grasa" value={fat} max={30} colorClass="bg-nutrient-fat" />
-          <NutrientBar label="Fibra" value={fiber} max={15} colorClass="bg-nutrient-fiber" />
-        </div>
-      )}
+      {/* Nutrient sliders */}
+      <div className="glass-card rounded-2xl p-5 mb-4 space-y-5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <h3 className="text-sm font-bold font-display">Ajusta los valores</h3>
+        
+        <NutrientSlider
+          label="Calorías"
+          value={calories}
+          max={1200}
+          unit="kcal"
+          colorClass="slider-calories"
+          onChange={setCalories}
+        />
+        <NutrientSlider
+          label="Proteína"
+          value={protein}
+          max={100}
+          unit="g"
+          colorClass="slider-protein"
+          onChange={setProtein}
+        />
+        <NutrientSlider
+          label="Carbohidratos"
+          value={carbs}
+          max={150}
+          unit="g"
+          colorClass="slider-carbs"
+          onChange={setCarbs}
+        />
+        <NutrientSlider
+          label="Grasa"
+          value={fat}
+          max={80}
+          unit="g"
+          colorClass="slider-fat"
+          onChange={setFat}
+        />
+        <NutrientSlider
+          label="Fibra"
+          value={fiber}
+          max={30}
+          unit="g"
+          colorClass="slider-fiber"
+          onChange={setFiber}
+        />
+        <NutrientSlider
+          label="Porción"
+          value={servingSize}
+          max={500}
+          unit="g"
+          colorClass="slider-portion"
+          onChange={setServingSize}
+        />
+      </div>
 
       {/* Confirm button */}
       <Button

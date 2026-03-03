@@ -35,7 +35,7 @@ const HomePage = () => {
       {/* Header */}
       <div className="mb-8 animate-slide-up">
         <p className="text-muted-foreground text-sm">Hola,</p>
-        <h1 className="text-2xl font-bold font-display text-foreground">{profile.name} 👋</h1>
+        <h1 className="text-2xl font-bold font-display text-foreground">{profile.name} 🍊</h1>
         <div className="mt-1 flex items-center gap-1.5">
           <TrendingUp size={14} className="text-primary" />
           <span className="text-xs text-primary font-medium">{goalLabels[profile.goal]}</span>
